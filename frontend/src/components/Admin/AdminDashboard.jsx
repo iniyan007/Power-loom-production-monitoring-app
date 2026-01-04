@@ -1,44 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import axios from 'axios';
 import MachineCard from './MachineCard';
 import WeaverModal from './WeaverModal';
 
+const API_URL = 'http://localhost:5000/api';
+
 const AdminDashboard = ({ onLogout }) => {
-  const [machines, setMachines] = useState([
-    {
-      id: 1,
-      weaverName: '',
-      length: '-',
-      startTime: '-',
-      endTime: '-',
-      power: '-'
-    }
-  ]);
+  const [machines, setMachines] = useState([]);
+  const [availableWeavers, setAvailableWeavers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedMachineId, setSelectedMachineId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock weavers data - Replace with API call
-  const availableWeavers = [
-    { id: 1, name: 'Apoorva', email: 'apoorva@example.com' },
-    { id: 2, name: 'Barath', email: 'barath@example.com' },
-    { id: 3, name: 'Iniyan', email: 'iniyan@example.com' },
-    { id: 4, name: 'Gayathri', email: 'gayathri@example.com' }
-  ];
-
-  const addMachine = () => {
-    const newMachine = {
-      id: machines.length + 1,
-      weaverName: '',
-      length: '-',
-      startTime: '-',
-      endTime: '-',
-      power: '-'
-    };
-    setMachines([...machines, newMachine]);
+  // Get auth token
+  const getAuthHeader = () => {
+    const token = localStorage.getItem('token');
+    return { Authorization: token };
   };
 
-  const deleteMachine = (id) => {
-    setMachines(machines.filter((m) => m.id !== id));
+  // Fetch machines/looms
+  const fetchMachines = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/looms`, {
+        headers: getAuthHeader()
+      });
+      setMachines(response.data);
+      setLoading(false);
+    } catch (err) {
+      setError('Failed to load machines');
+      setLoading(false);
+    }
+  };
+
+  // Fetch available weavers
+  const fetchWeavers = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/looms/weavers`, {
+        headers: getAuthHeader()
+      });
+      setAvailableWeavers(response.data);
+    } catch (err) {
+      console.error('Failed to load weavers:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchMachines();
+    fetchWeavers();
+  }, []);
+
+  const addMachine = async () => {
+    try {
+      const loomId = `LOOM-${Date.now()}`;
+      const response = await axios.post(
+        `${API_URL}/looms`,
+        { loomId },
+        { headers: getAuthHeader() }
+      );
+      setMachines([...machines, response.data]);
+    } catch (err) {
+      setError('Failed to add machine');
+    }
+  };
+
+  const deleteMachine = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/looms/${id}`, {
+        headers: getAuthHeader()
+      });
+      setMachines(machines.filter((m) => m.id !== id));
+    } catch (err) {
+      setError('Failed to delete machine');
+    }
   };
 
   const assignWeaver = (machineId) => {
@@ -46,13 +81,39 @@ const AdminDashboard = ({ onLogout }) => {
     setShowModal(true);
   };
 
-  const handleWeaverSelect = (weaver) => {
-    setMachines(
-      machines.map((m) =>
-        m.id === selectedMachineId ? { ...m, weaverName: weaver.name } : m
-      )
-    );
+  const handleWeaverSelect = async (weaver) => {
+    try {
+      const response = await axios.put(
+        `${API_URL}/looms/${selectedMachineId}/assign`,
+        { weaverId: weaver.id },
+        { headers: getAuthHeader() }
+      );
+      
+      setMachines(
+        machines.map((m) =>
+          m.id === selectedMachineId 
+            ? { ...m, weaverName: response.data.weaverName, weaverId: response.data.weaverId } 
+            : m
+        )
+      );
+    } catch (err) {
+      setError('Failed to assign weaver');
+    }
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    onLogout();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-xl font-semibold text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -67,7 +128,7 @@ const AdminDashboard = ({ onLogout }) => {
               <p className="text-sm text-gray-600">Manage weaving machines</p>
             </div>
             <button
-              onClick={onLogout}
+              onClick={handleLogout}
               className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
             >
               Logout
@@ -78,6 +139,13 @@ const AdminDashboard = ({ onLogout }) => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
+
         {/* Add Machine Button */}
         <div className="mb-6">
           <button
