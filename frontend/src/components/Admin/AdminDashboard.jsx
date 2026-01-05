@@ -134,7 +134,7 @@ const AdminDashboard = ({ onLogout }) => {
       setShowModal(false);
       setError('');
     } catch (err) {
-      setError("Failed to assign weaver and shift");
+      setError("Failed to assign weaver and shift"+err.message);
     }
   };
 
