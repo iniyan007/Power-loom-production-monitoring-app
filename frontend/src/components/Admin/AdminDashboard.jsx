@@ -14,13 +14,12 @@ const AdminDashboard = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Get auth token
   const getAuthHeader = () => {
     const token = localStorage.getItem('token');
     return { Authorization: token };
   };
 
-  // Fetch machines/looms
+  // ✅ Fetch machines with real-time updates
   const fetchMachines = async () => {
     try {
       const response = await axios.get(`${API_URL}/looms`, {
@@ -28,13 +27,13 @@ const AdminDashboard = ({ onLogout }) => {
       });
       setMachines(response.data);
       setLoading(false);
+      setError('');
     } catch (err) {
       setError('Failed to load machines');
       setLoading(false);
     }
   };
 
-  // Fetch available weavers
   const fetchWeavers = async () => {
     try {
       const response = await axios.get(`${API_URL}/looms/weavers`, {
@@ -46,9 +45,35 @@ const AdminDashboard = ({ onLogout }) => {
     }
   };
 
+  // ✅ Auto-refresh every 5 seconds for real-time status
   useEffect(() => {
     fetchMachines();
     fetchWeavers();
+
+    const refreshInterval = setInterval(() => {
+      fetchMachines();
+    }, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, []);
+
+  // ✅ Auto-complete expired shifts every minute
+  useEffect(() => {
+    const autoCompleteShifts = async () => {
+      try {
+        await axios.post(`${API_URL}/shifts/auto-complete-shifts`, {}, {
+          headers: getAuthHeader()
+        });
+      } catch (err) {
+        console.error('Auto-complete shifts failed:', err);
+      }
+    };
+
+    // Run immediately and then every minute
+    autoCompleteShifts();
+    const shiftCheckInterval = setInterval(autoCompleteShifts, 60000);
+
+    return () => clearInterval(shiftCheckInterval);
   }, []);
 
   const addMachine = async () => {
@@ -66,6 +91,8 @@ const AdminDashboard = ({ onLogout }) => {
   };
 
   const deleteMachine = async (id) => {
+    if (!confirm('Are you sure you want to delete this machine?')) return;
+    
     try {
       await axios.delete(`${API_URL}/looms/${id}`, {
         headers: getAuthHeader()
@@ -82,60 +109,51 @@ const AdminDashboard = ({ onLogout }) => {
   };
 
   const handleWeaverSelect = async (weaver, shiftType) => {
-  try {
-    // 1️⃣ Assign weaver to loom
-    const response = await axios.put(
-      `${API_URL}/looms/${selectedMachineId}/assign`,
-      { weaverId: weaver.id },
-      { headers: getAuthHeader() }
-    );
+    try {
+      // Assign weaver to loom
+      const response = await axios.put(
+        `${API_URL}/looms/${selectedMachineId}/assign`,
+        { weaverId: weaver.id },
+        { headers: getAuthHeader() }
+      );
 
-    // 2️⃣ Assign shift
-    await axios.post(
-      `${API_URL}/shifts/assign`,
-      {
-        loomId: selectedMachineId,
-        weaverId: weaver.id,
-        shiftType,
-        startTime: new Date()
-      },
-      { headers: getAuthHeader() }
-    );
+      // Assign shift
+      await axios.post(
+        `${API_URL}/shifts/assign`,
+        {
+          loomId: selectedMachineId,
+          weaverId: weaver.id,
+          shiftType,
+          startTime: new Date()
+        },
+        { headers: getAuthHeader() }
+      );
 
-    // 3️⃣ Update UI
-    setMachines(
-      machines.map((m) =>
-        m.id === selectedMachineId
-          ? { ...m, weaverName: response.data.weaverName }
-          : m
-      )
-    );
+      // Refresh machines to get updated data
+      await fetchMachines();
+      setShowModal(false);
+      setError('');
+    } catch (err) {
+      setError("Failed to assign weaver and shift");
+    }
+  };
 
-    setShowModal(false);
-  } catch (err) {
-    setError("Failed to assign weaver and shift");
-  }
-};
+  const unassignWeaver = async (machineId) => {
+    if (!confirm('Are you sure you want to unassign this weaver?')) return;
 
-const unassignWeaver = async (machineId) => {
-  try {
-    await axios.put(
-      `${API_URL}/looms/${machineId}/unassign`,
-      {},
-      { headers: getAuthHeader() }
-    );
+    try {
+      await axios.put(
+        `${API_URL}/looms/${machineId}/unassign`,
+        {},
+        { headers: getAuthHeader() }
+      );
 
-    setMachines(
-      machines.map((m) =>
-        m.id === machineId
-          ? { ...m, weaverName: null, weaverId: null }
-          : m
-      )
-    );
-  } catch (err) {
-    setError("Failed to unassign weaver");
-  }
-};
+      await fetchMachines();
+      setError('');
+    } catch (err) {
+      setError("Failed to unassign weaver");
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -153,7 +171,6 @@ const unassignWeaver = async (machineId) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
       <div className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
@@ -161,7 +178,7 @@ const unassignWeaver = async (machineId) => {
               <h1 className="text-2xl font-bold text-gray-800">
                 Admin Dashboard
               </h1>
-              <p className="text-sm text-gray-600">Manage weaving machines</p>
+              <p className="text-sm text-gray-600">Manage weaving machines • Auto-refresh: 5s</p>
             </div>
             <button
               onClick={handleLogout}
@@ -173,16 +190,13 @@ const unassignWeaver = async (machineId) => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Error Message */}
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
             {error}
           </div>
         )}
 
-        {/* Add Machine Button */}
         <div className="mb-6">
           <button
             onClick={addMachine}
@@ -193,13 +207,13 @@ const unassignWeaver = async (machineId) => {
           </button>
         </div>
 
-        {/* Machines Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {machines.map((machine) => (
             <MachineCard
               key={machine.id}
               machine={machine}
               onAssignWeaver={assignWeaver}
+              onUnassignWeaver={unassignWeaver}
               onDelete={deleteMachine}
             />
           ))}
@@ -214,7 +228,6 @@ const unassignWeaver = async (machineId) => {
         )}
       </div>
 
-      {/* Weaver Assignment Modal */}
       <WeaverModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
