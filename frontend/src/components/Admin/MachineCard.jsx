@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { Ruler, Clock, Power, User, X } from 'lucide-react';
 
 const MachineCard = ({ machine, onAssignWeaver, onDelete }) => {
@@ -13,10 +13,24 @@ const MachineCard = ({ machine, onAssignWeaver, onDelete }) => {
             <User size={20} />
             {machine.weaverName || 'Assign Weaver'}
           </button>
+
+          {/* ✅ Loom ID (NEW) */}
+          <p className="text-sm text-gray-600">
+            Loom ID: <span className="font-medium">{machine.loomId}</span>
+          </p>
+
+          {/* ✅ Shift Type (NEW) */}
+          {machine.shiftType && (
+            <p className="text-sm text-gray-500">
+              Shift: <span className="font-medium">{machine.shiftType}</span>
+            </p>
+          )}
+
           {machine.weaverName && (
             <p className="text-sm text-gray-500">Click name to reassign</p>
           )}
         </div>
+
         <button
           onClick={() => onDelete(machine.id)}
           className="text-red-500 hover:text-red-700 transition-colors"

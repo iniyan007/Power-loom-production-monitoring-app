@@ -2,6 +2,7 @@ const express = require("express");
 const Loom = require("../models/Loom");
 const SensorData = require("../models/SensorData");
 const { auth, adminOnly } = require("../middleware/auth");
+const Shift = require("../models/Shift");
 
 const router = express.Router();
 
@@ -15,13 +16,17 @@ router.get("/", auth, adminOnly, async (req, res) => {
       looms.map(async (loom) => {
         const latestSensor = await SensorData.findOne({ loomId: loom._id })
           .sort({ timestamp: -1 });
-        
-        return {
+        const activeShift = await Shift.findOne({
+          loomId: loom._id,
+          completed: false
+        });
+          return {
           id: loom._id,
           loomId: loom.loomId,
           status: loom.status,
           weaverName: loom.currentWeaver ? loom.currentWeaver.name : '',
           weaverId: loom.currentWeaver ? loom.currentWeaver._id : null,
+          shiftType: activeShift ? activeShift.shiftType : null,
           length: latestSensor ? latestSensor.production : '-',
           power: latestSensor ? latestSensor.energy : '-',
           startTime: '-',
@@ -63,6 +68,30 @@ router.post("/", auth, adminOnly, async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
+});
+router.put("/:id/unassign", auth, async (req, res) => {
+  const loom = await Loom.findById(req.params.id);
+
+  if (!loom || !loom.currentWeaver) {
+    return res.json({ message: "No active assignment" });
+  }
+
+  await Shift.findOneAndUpdate(
+    {
+      loomId: loom._id,
+      weaverId: loom.currentWeaver,
+      completed: false
+    },
+    {
+      completed: true,
+      endTime: new Date()
+    }
+  );
+
+  loom.currentWeaver = null;
+  await loom.save();
+
+  res.json({ message: "Loom unassigned and shift ended" });
 });
 
 // Delete loom (Admin)

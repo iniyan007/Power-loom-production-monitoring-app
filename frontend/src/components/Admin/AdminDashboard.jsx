@@ -81,25 +81,61 @@ const AdminDashboard = ({ onLogout }) => {
     setShowModal(true);
   };
 
-  const handleWeaverSelect = async (weaver) => {
-    try {
-      const response = await axios.put(
-        `${API_URL}/looms/${selectedMachineId}/assign`,
-        { weaverId: weaver.id },
-        { headers: getAuthHeader() }
-      );
-      
-      setMachines(
-        machines.map((m) =>
-          m.id === selectedMachineId 
-            ? { ...m, weaverName: response.data.weaverName, weaverId: response.data.weaverId } 
-            : m
-        )
-      );
-    } catch (err) {
-      setError('Failed to assign weaver');
-    }
-  };
+  const handleWeaverSelect = async (weaver, shiftType) => {
+  try {
+    // 1️⃣ Assign weaver to loom
+    const response = await axios.put(
+      `${API_URL}/looms/${selectedMachineId}/assign`,
+      { weaverId: weaver.id },
+      { headers: getAuthHeader() }
+    );
+
+    // 2️⃣ Assign shift
+    await axios.post(
+      `${API_URL}/shifts/assign`,
+      {
+        loomId: selectedMachineId,
+        weaverId: weaver.id,
+        shiftType,
+        startTime: new Date()
+      },
+      { headers: getAuthHeader() }
+    );
+
+    // 3️⃣ Update UI
+    setMachines(
+      machines.map((m) =>
+        m.id === selectedMachineId
+          ? { ...m, weaverName: response.data.weaverName }
+          : m
+      )
+    );
+
+    setShowModal(false);
+  } catch (err) {
+    setError("Failed to assign weaver and shift");
+  }
+};
+
+const unassignWeaver = async (machineId) => {
+  try {
+    await axios.put(
+      `${API_URL}/looms/${machineId}/unassign`,
+      {},
+      { headers: getAuthHeader() }
+    );
+
+    setMachines(
+      machines.map((m) =>
+        m.id === machineId
+          ? { ...m, weaverName: null, weaverId: null }
+          : m
+      )
+    );
+  } catch (err) {
+    setError("Failed to unassign weaver");
+  }
+};
 
   const handleLogout = () => {
     localStorage.removeItem('token');
