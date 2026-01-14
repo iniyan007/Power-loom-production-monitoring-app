@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Play, Pause, User, Clock } from "lucide-react";
+import { Play, Pause, User, Clock, Calendar } from "lucide-react";
 
 const WeaverDashboard = ({ onLogout }) => {
   const [assignedMachines, setAssignedMachines] = useState([]);
+  const [upcomingShifts, setUpcomingShifts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState('');
 
-  /* ================= FETCH ASSIGNED LOOMS ================= */
   const fetchAssignedShifts = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -23,11 +23,14 @@ const WeaverDashboard = ({ onLogout }) => {
         setAssignedMachines(
           data.map((shift) => ({
             id: shift.loomId._id,
+            shiftId: shift._id,
             loomId: shift.loomId.loomId,
             shiftType: shift.shiftType,
             status: shift.loomId.status,
             runningSince: shift.loomId.runningSince,
-            shiftEndTime: shift.endTime
+            shiftStartTime: shift.startTime,
+            shiftEndTime: shift.endTime,
+            scheduledDate: shift.scheduledDate
           }))
         );
       } else {
@@ -43,18 +46,45 @@ const WeaverDashboard = ({ onLogout }) => {
     }
   };
 
+  const fetchUpcomingShifts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        "http://localhost:5000/api/shifts/my-all-upcoming-shifts",
+        { headers: { Authorization: token } }
+      );
+
+      const data = await res.json();
+      
+      // Group shifts by date for better organization
+      const groupedShifts = data.reduce((acc, shift) => {
+        const date = new Date(shift.scheduledDate).toLocaleDateString('en-IN');
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        acc[date].push(shift);
+        return acc;
+      }, {});
+
+      setUpcomingShifts(groupedShifts);
+    } catch (err) {
+      console.error("Failed to load upcoming shifts", err);
+    }
+  };
+
   useEffect(() => {
     fetchAssignedShifts();
+    fetchUpcomingShifts();
 
-    // ✅ Auto-refresh every 5 seconds
     const refreshInterval = setInterval(() => {
       fetchAssignedShifts();
+      fetchUpcomingShifts();
     }, 5000);
 
     return () => clearInterval(refreshInterval);
   }, []);
 
-  /* ================= GLOBAL TICK (FOR TIMER) ================= */
   useEffect(() => {
     const interval = setInterval(() => {
       setNow(Date.now());
@@ -63,11 +93,18 @@ const WeaverDashboard = ({ onLogout }) => {
     return () => clearInterval(interval);
   }, []);
 
-  /* ================= START / STOP LOOM ================= */
   const toggleMachine = async (machine) => {
     try {
-      if (machine.status === "stopped" && !isWithinShiftTime(machine.shiftType)) {
-        alert(`You can only start during ${machine.shiftType} shift`);
+      const currentTime = new Date();
+      const shiftStart = new Date(machine.shiftStartTime);
+
+      // Check if shift has started
+      if (machine.status === "stopped" && currentTime < shiftStart) {
+        const startTime = shiftStart.toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        alert(`Your ${machine.shiftType} shift starts at ${startTime}. Please wait until then.`);
         return;
       }
 
@@ -89,7 +126,6 @@ const WeaverDashboard = ({ onLogout }) => {
         return;
       }
 
-      // ✅ Refresh data from server instead of local update
       await fetchAssignedShifts();
       setError('');
     } catch (err) {
@@ -98,26 +134,6 @@ const WeaverDashboard = ({ onLogout }) => {
     }
   };
 
-  /* ================= SHIFT TIME CHECK ================= */
-  const isWithinShiftTime = (shiftType) => {
-    const now = new Date();
-    const current = now.getHours() * 60 + now.getMinutes();
-
-    const toMin = (h, m) => h * 60 + m;
-
-    if (shiftType === "Morning")
-      return current >= toMin(6, 0) && current < toMin(14, 0);
-
-    if (shiftType === "Evening")
-      return current >= toMin(14, 0) && current < toMin(22, 0);
-
-    if (shiftType === "Night")
-      return current >= toMin(22, 0) || current < toMin(6, 0);
-
-    return false;
-  };
-
-  /* ================= FORMAT TIMER ================= */
   const formatTime = (runningSince) => {
     if (!runningSince) return "00:00:00";
 
@@ -131,10 +147,9 @@ const WeaverDashboard = ({ onLogout }) => {
       .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  /* ================= FORMAT SHIFT END TIME ================= */
-  const formatShiftEndTime = (endTime) => {
-    if (!endTime) return "";
-    const date = new Date(endTime);
+  const formatShiftTime = (time) => {
+    if (!time) return "";
+    const date = new Date(time);
     return date.toLocaleTimeString('en-IN', { 
       hour: '2-digit', 
       minute: '2-digit',
@@ -142,13 +157,64 @@ const WeaverDashboard = ({ onLogout }) => {
     });
   };
 
-  /* ================= CHECK IF SHIFT ENDED ================= */
-  const isShiftEnded = (endTime) => {
-    if (!endTime) return false;
-    return now > new Date(endTime).getTime();
+  const formatDate = (date) => {
+    if (!date) return "";
+    return new Date(date).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
   };
 
-  /* ================= LOADING ================= */
+  const formatDateWithDay = (date) => {
+    if (!date) return "";
+    return new Date(date).toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const isToday = (date) => {
+    const today = new Date();
+    const compareDate = new Date(date);
+    return today.toDateString() === compareDate.toDateString();
+  };
+
+  const isTomorrow = (date) => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const compareDate = new Date(date);
+    return tomorrow.toDateString() === compareDate.toDateString();
+  };
+
+  const getDaysUntil = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+    const diffTime = targetDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const isShiftActive = (machine) => {
+    const currentTime = new Date();
+    const shiftStart = new Date(machine.shiftStartTime);
+    const shiftEnd = new Date(machine.shiftEndTime);
+    
+    return currentTime >= shiftStart && currentTime <= shiftEnd;
+  };
+
+  const canStartLoom = (machine) => {
+    const currentTime = new Date();
+    const shiftStart = new Date(machine.shiftStartTime);
+    const thirtyMinsBefore = new Date(shiftStart.getTime() - 30 * 60 * 1000);
+    
+    return currentTime >= thirtyMinsBefore;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -157,7 +223,6 @@ const WeaverDashboard = ({ onLogout }) => {
     );
   }
 
-  /* ================= UI ================= */
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="bg-white shadow-md">
@@ -167,7 +232,7 @@ const WeaverDashboard = ({ onLogout }) => {
               Weaver Dashboard
             </h1>
             <p className="text-sm text-gray-600">
-              Monitor your assigned looms • Auto-refresh: 5s
+              Today's shifts • Auto-refresh: 5s
             </p>
           </div>
           <button
@@ -179,116 +244,216 @@ const WeaverDashboard = ({ onLogout }) => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
             {error}
           </div>
         )}
 
-        {assignedMachines.length === 0 ? (
+        {/* Today's Active Shifts */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Today's Assigned Shifts</h2>
+          
+          {assignedMachines.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
+              <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                <User size={48} className="text-gray-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                No Shifts Today
+              </h3>
+              <p className="text-gray-600">
+                You don't have any shifts assigned for today. Check your upcoming shifts below.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {assignedMachines.map((machine) => {
+                const shiftActive = isShiftActive(machine);
+                const canStart = canStartLoom(machine);
+
+                return (
+                  <div
+                    key={machine.shiftId}
+                    className="bg-white rounded-2xl shadow-2xl p-6"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold">{machine.loomId}</h3>
+                        <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
+                          <Calendar size={14} />
+                          {formatDate(machine.scheduledDate)}
+                        </p>
+                      </div>
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          machine.status === "running"
+                            ? "bg-green-500 animate-pulse"
+                            : "bg-red-500"
+                        }`}
+                        title={machine.status === "running" ? "Running" : "Stopped"}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-4 mb-4 text-sm">
+                      <span className="font-medium flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded-full">
+                        <Clock size={14} />
+                        {machine.shiftType}
+                      </span>
+                      <span className="text-gray-600">
+                        {formatShiftTime(machine.shiftStartTime)} - {formatShiftTime(machine.shiftEndTime)}
+                      </span>
+                    </div>
+
+                    {!shiftActive && (
+                      <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg text-sm">
+                        {canStart 
+                          ? `⏰ Your shift starts at ${formatShiftTime(machine.shiftStartTime)}`
+                          : `⏳ Shift not yet available. Available 30 minutes before start time.`
+                        }
+                      </div>
+                    )}
+
+                    {shiftActive && (
+                      <div className="text-center mb-6">
+                        <p className="text-sm text-gray-500 mb-2">Running Time</p>
+                        <p className="text-4xl font-mono font-bold">
+                          {formatTime(machine.runningSince)}
+                        </p>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => toggleMachine(machine)}
+                      disabled={!canStart}
+                      className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
+                        !canStart
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : machine.status === "running"
+                          ? "bg-red-500 text-white hover:bg-red-600"
+                          : "bg-green-500 text-white hover:bg-green-600"
+                      }`}
+                    >
+                      {machine.status === "running" ? (
+                        <>
+                          <Pause />
+                          Stop Loom
+                        </>
+                      ) : (
+                        <>
+                          <Play />
+                          Start Loom
+                        </>
+                      )}
+                    </button>
+
+                    <div className="mt-4 pt-4 border-t text-center">
+                      <span
+                        className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                          machine.status === "running"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {machine.status === "running" ? "● RUNNING" : "● STOPPED"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Upcoming Shifts - All Future Shifts */}
+        {Object.keys(upcomingShifts).length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Upcoming Shifts</h2>
+            <div className="space-y-4">
+              {Object.entries(upcomingShifts)
+                .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
+                .map(([date, shifts]) => {
+                  const firstShiftDate = shifts[0].scheduledDate;
+                  const daysUntil = getDaysUntil(firstShiftDate);
+                  
+                  let dateLabel = formatDateWithDay(firstShiftDate);
+                  if (isToday(firstShiftDate)) {
+                    dateLabel = `Today - ${formatDate(firstShiftDate)}`;
+                  } else if (isTomorrow(firstShiftDate)) {
+                    dateLabel = `Tomorrow - ${formatDate(firstShiftDate)}`;
+                  } else if (daysUntil <= 7) {
+                    dateLabel = `In ${daysUntil} days - ${formatDateWithDay(firstShiftDate)}`;
+                  }
+
+                  return (
+                    <div key={date} className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                      {/* Date Header */}
+                      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-lg">{dateLabel}</h3>
+                          <span className="text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                            {shifts.length} {shifts.length === 1 ? 'Shift' : 'Shifts'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Shifts for this date */}
+                      <div className="p-6 space-y-3">
+                        {shifts
+                          .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+                          .map((shift) => (
+                            <div
+                              key={shift._id}
+                              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className={`p-3 rounded-lg ${
+                                  shift.shiftType === 'Morning' ? 'bg-yellow-100' :
+                                  shift.shiftType === 'Evening' ? 'bg-orange-100' :
+                                  'bg-indigo-100'
+                                }`}>
+                                  <Clock size={24} className={
+                                    shift.shiftType === 'Morning' ? 'text-yellow-600' :
+                                    shift.shiftType === 'Evening' ? 'text-orange-600' :
+                                    'text-indigo-600'
+                                  } />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-800">
+                                    {shift.loomId.loomId} - {shift.shiftType} Shift
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {formatShiftTime(shift.startTime)} - {formatShiftTime(shift.endTime)}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
+                                Scheduled
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
+        {/* No Upcoming Shifts */}
+        {Object.keys(upcomingShifts).length === 0 && assignedMachines.length === 0 && (
           <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
             <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-              <User size={48} className="text-gray-400" />
+              <Calendar size={48} className="text-gray-400" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              No Loom Assigned
-            </h2>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">
+              No Shifts Scheduled
+            </h3>
             <p className="text-gray-600">
-              Please contact administrator to assign you a loom and shift.
+              You don't have any shifts assigned yet. Please contact your administrator.
             </p>
           </div>
-        ) : (
-          assignedMachines.map((machine) => {
-            const shiftEnded = isShiftEnded(machine.shiftEndTime);
-            const canOperate = isWithinShiftTime(machine.shiftType) && !shiftEnded;
-
-            return (
-              <div
-                key={machine.id}
-                className="bg-white rounded-2xl shadow-2xl p-8 mb-6"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xl font-bold">{machine.loomId}</h2>
-                  <span
-                    className={`w-3 h-3 rounded-full ${
-                      machine.status === "running"
-                        ? "bg-green-500 animate-pulse"
-                        : "bg-red-500"
-                    }`}
-                    title={machine.status === "running" ? "Running" : "Stopped"}
-                  />
-                </div>
-
-                <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
-                  <span className="font-medium">
-                    Shift: {machine.shiftType}
-                  </span>
-                  {machine.shiftEndTime && (
-                    <span className="flex items-center gap-1">
-                      <Clock size={14} />
-                      Ends: {formatShiftEndTime(machine.shiftEndTime)}
-                    </span>
-                  )}
-                </div>
-
-                {shiftEnded && (
-                  <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg text-sm">
-                    ⚠️ Your shift has ended. Loom controls are disabled.
-                  </div>
-                )}
-
-                {!canOperate && !shiftEnded && (
-                  <div className="mb-4 p-3 bg-blue-100 border border-blue-400 text-blue-800 rounded-lg text-sm">
-                    ℹ️ You can only operate during your {machine.shiftType} shift
-                  </div>
-                )}
-
-                <div className="text-center mb-6">
-                  <p className="text-sm text-gray-500 mb-2">Running Time</p>
-                  <p className="text-4xl font-mono font-bold">
-                    {formatTime(machine.runningSince)}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => toggleMachine(machine)}
-                  disabled={shiftEnded}
-                  className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
-                    shiftEnded
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : machine.status === "running"
-                      ? "bg-red-500 text-white hover:bg-red-600"
-                      : "bg-green-500 text-white hover:bg-green-600"
-                  }`}
-                >
-                  {machine.status === "running" ? (
-                    <>
-                      <Pause />
-                      Stop Loom
-                    </>
-                  ) : (
-                    <>
-                      <Play />
-                      Start Loom
-                    </>
-                  )}
-                </button>
-
-                <div className="mt-4 pt-4 border-t text-center">
-                  <span
-                    className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                      machine.status === "running"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {machine.status === "running" ? "● RUNNING" : "● STOPPED"}
-                  </span>
-                </div>
-              </div>
-            );
-          })
         )}
       </div>
     </div>
