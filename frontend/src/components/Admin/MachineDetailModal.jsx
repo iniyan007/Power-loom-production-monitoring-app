@@ -24,7 +24,7 @@ const MachineDetailModal = ({ isOpen, onClose, machine, authToken }) => {
     
     try {
       const response = await fetch(
-        `http://localhost:5000/api/sensors/live/${machine.id}`,
+        `http://localhost:5000/api/sensor/live/${machine.id}`,
         { headers: { Authorization: authToken } }
       );
       const data = await response.json();
@@ -41,7 +41,7 @@ const MachineDetailModal = ({ isOpen, onClose, machine, authToken }) => {
     
     try {
       const response = await fetch(
-        `http://localhost:5000/api/sensors/history/${machine.id}`,
+        `http://localhost:5000/api/sensor/history/${machine.id}`,
         { headers: { Authorization: authToken } }
       );
       const data = await response.json();

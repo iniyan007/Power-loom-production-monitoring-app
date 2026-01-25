@@ -8,13 +8,11 @@ const shiftSchema = new mongoose.Schema({
     enum: ["Morning", "Evening", "Night"],
     required: true 
   },
-  // ✅ NEW: Date for which this shift is scheduled
   scheduledDate: { 
     type: Date, 
     required: true,
     index: true 
   },
-  // Start and end times calculated based on shift type and scheduled date
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
   // Shift status

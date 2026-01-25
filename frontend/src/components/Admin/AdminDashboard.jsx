@@ -160,7 +160,7 @@ const MachineCard = ({ machine, onAssignWeaver, onUnassignWeaver, onDelete, onVi
             <Ruler size={18} className="text-blue-500" />
             <div>
               <p className="text-xs text-gray-500">Length Weaved</p>
-              <p className="font-semibold">{machine.length}</p>
+              <p className="font-semibold">{machine.length} m</p>
             </div>
           </div>
 
@@ -178,7 +178,7 @@ const MachineCard = ({ machine, onAssignWeaver, onUnassignWeaver, onDelete, onVi
             <Power size={18} className="text-yellow-500" />
             <div>
               <p className="text-xs text-gray-500">Power Consumed</p>
-              <p className="font-semibold">{machine.power}</p>
+              <p className="font-semibold">{machine.power} KWh</p>
             </div>
           </div>
         </div>

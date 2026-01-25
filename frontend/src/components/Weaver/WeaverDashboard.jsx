@@ -229,7 +229,7 @@ const WeaverDashboard = ({ onLogout }) => {
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
-              Weaver Dashboard
+              Weaver 
             </h1>
             <p className="text-sm text-gray-600">
               Today's shifts • Auto-refresh: 5s
@@ -392,7 +392,7 @@ const WeaverDashboard = ({ onLogout }) => {
                       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3">
                         <div className="flex items-center justify-between">
                           <h3 className="font-bold text-lg">{dateLabel}</h3>
-                          <span className="text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                          <span className="text-black bg-white bg-opacity-20 px-3 py-1 rounded-full">
                             {shifts.length} {shifts.length === 1 ? 'Shift' : 'Shifts'}
                           </span>
                         </div>
