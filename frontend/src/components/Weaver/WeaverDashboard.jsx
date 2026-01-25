@@ -13,7 +13,7 @@ const WeaverDashboard = ({ onLogout }) => {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        "http://localhost:5000/api/shifts/my-active-shift",
+        "https://power-loom-production-monitoring-app.onrender.com/api/shifts/my-active-shift",
         { headers: { Authorization: token } }
       );
 
@@ -51,7 +51,7 @@ const WeaverDashboard = ({ onLogout }) => {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        "http://localhost:5000/api/shifts/my-all-upcoming-shifts",
+        "https://power-loom-production-monitoring-app.onrender.com/api/shifts/my-all-upcoming-shifts",
         { headers: { Authorization: token } }
       );
 
@@ -115,7 +115,7 @@ const WeaverDashboard = ({ onLogout }) => {
           ? `/api/looms/${machine.id}/stop`
           : `/api/looms/${machine.id}/start`;
 
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`https://power-loom-production-monitoring-app.onrender.com${endpoint}`, {
         method: "POST",
         headers: { Authorization: token },
       });

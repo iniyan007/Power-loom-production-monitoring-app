@@ -24,7 +24,7 @@ const MachineDetailModal = ({ isOpen, onClose, machine, authToken }) => {
     
     try {
       const response = await fetch(
-        `http://localhost:5000/api/sensor/live/${machine.id}`,
+        `https://power-loom-production-monitoring-app.onrender.com/api/sensor/live/${machine.id}`,
         { headers: { Authorization: authToken } }
       );
       const data = await response.json();
@@ -41,7 +41,7 @@ const MachineDetailModal = ({ isOpen, onClose, machine, authToken }) => {
     
     try {
       const response = await fetch(
-        `http://localhost:5000/api/sensor/history/${machine.id}`,
+        `https://power-loom-production-monitoring-app.onrender.com/api/sensor/history/${machine.id}`,
         { headers: { Authorization: authToken } }
       );
       const data = await response.json();

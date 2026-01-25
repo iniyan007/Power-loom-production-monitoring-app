@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Ruler, Clock, Power, User, X, UserX, BarChart3, Calendar, Edit } from "lucide-react";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://power-loom-production-monitoring-app.onrender.com/api";
 
 // Machine Card Component
 const MachineCard = ({ machine, onAssignWeaver, onUnassignWeaver, onDelete, onViewDetails, onRefresh }) => {

@@ -10,7 +10,7 @@ const sensorRoutes = require("./routes/sensorRoutes");
 
 
 dotenv.config();
-
+app.use(express.json()); 
 const app = express();
 
 // Middleware
