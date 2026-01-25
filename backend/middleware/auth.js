@@ -5,7 +5,7 @@ exports.auth = (req, res, next) => {
   if (!token) return res.status(401).send("No token");
 
   try {
-    const decoded = jwt.verify(token, "SECRET");
+    const decoded = jwt.verify(token, "thisisiniyanfromeie");
     req.user = decoded;
     next();
   } catch {
