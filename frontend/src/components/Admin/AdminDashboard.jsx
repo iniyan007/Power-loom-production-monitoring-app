@@ -4,7 +4,7 @@ import axios from 'axios';
 import MachineCard from './MachineCard';
 import WeaverModal from './WeaverModal';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://power-loom-production-monitoring-app.onrender.com/api';
 
 const AdminDashboard = ({ onLogout }) => {
   const [machines, setMachines] = useState([]);
