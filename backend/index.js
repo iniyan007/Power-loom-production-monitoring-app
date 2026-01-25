@@ -15,7 +15,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173', // Frontend URL
+  origin: 'https://power-loom-production-monitoring-ap.vercel.app/', // Frontend URL
   credentials: true
 }));
 app.use(express.json());

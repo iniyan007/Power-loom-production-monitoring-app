@@ -3,7 +3,7 @@ import { Plus, Ruler, Clock, Power, User, X, UserX, BarChart3, Calendar, Edit } 
 import WeaverModal from "./WeaverModal";
 import MachineDetailModal from "./MachineDetailModal";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://power-loom-production-monitoring-app.onrender.com/api";
 
 // Machine Card Component with Schedule Management
 const MachineCard = ({ machine, onAssignWeaver, onUnassignWeaver, onDelete, onViewDetails, onRefresh }) => {
