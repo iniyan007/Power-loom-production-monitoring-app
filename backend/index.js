@@ -8,7 +8,7 @@ const loomRoutes = require("./routes/loomRoutes");
 const shiftRoutes = require("./routes/shiftRoutes");
 const sensorRoutes = require("./routes/sensorRoutes");
 
-require("./cron/shiftSummary");
+
 dotenv.config();
 
 const app = express();
