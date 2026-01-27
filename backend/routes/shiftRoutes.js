@@ -2,11 +2,10 @@ const router = require("express").Router();
 const Shift = require("../models/Shift");
 const Loom = require("../models/Loom");
 const { auth, adminOnly } = require("../middleware/auth");
-
-// ✅ Helper function to calculate shift start and end times based on date
+// ✅ Helper function to calculate shift start and end times based on date (IST timezone)
 const calculateShiftTimes = (shiftType, scheduledDate) => {
-  // Parse the scheduled date (YYYY-MM-DD format)
-  const date = new Date(scheduledDate);
+  // Parse the scheduled date in IST timezone
+  const dateStr = scheduledDate.split('T')[0]; // Get YYYY-MM-DD
   
   const shiftConfig = {
     Morning: { startHour: 6, startMinute: 0, endHour: 14, endMinute: 0 },
@@ -16,20 +15,22 @@ const calculateShiftTimes = (shiftType, scheduledDate) => {
 
   const config = shiftConfig[shiftType];
   
-  // Create start time
-  const startTime = new Date(date);
-  startTime.setHours(config.startHour, config.startMinute, 0, 0);
+  // Create start time in IST (UTC+5:30)
+  // Format: YYYY-MM-DDTHH:MM:SS+05:30
+  const startTimeStr = `${dateStr}T${String(config.startHour).padStart(2, '0')}:${String(config.startMinute).padStart(2, '0')}:00+05:30`;
+  const startTime = new Date(startTimeStr);
   
   // Create end time
-  const endTime = new Date(date);
-  
+  let endDateStr = dateStr;
   if (shiftType === "Night") {
     // Night shift ends next day at 6 AM
-    endTime.setDate(endTime.getDate() + 1);
-    endTime.setHours(config.endHour, config.endMinute, 0, 0);
-  } else {
-    endTime.setHours(config.endHour, config.endMinute, 0, 0);
+    const nextDay = new Date(dateStr);
+    nextDay.setDate(nextDay.getDate() + 1);
+    endDateStr = nextDay.toISOString().split('T')[0];
   }
+  
+  const endTimeStr = `${endDateStr}T${String(config.endHour).padStart(2, '0')}:${String(config.endMinute).padStart(2, '0')}:00+05:30`;
+  const endTime = new Date(endTimeStr);
   
   return { startTime, endTime };
 };
