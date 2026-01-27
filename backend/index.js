@@ -43,7 +43,16 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
-
+// Add this temporarily to fix the database
+app.get("/api/fix-db", async (req, res) => {
+  try {
+    const User = require("./models/User");
+    await User.collection.dropIndex("username_1");
+    res.json({ message: "Index dropped successfully" });
+  } catch (error) {
+    res.json({ message: "Error or index doesn't exist", error: error.message });
+  }
+});
 // Handle 404
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
