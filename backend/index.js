@@ -12,13 +12,13 @@ const sensorRoutes = require("./routes/sensorRoutes");
 dotenv.config();
 
 const app = express();
-app.use(express.json()); 
+
 // Middleware
 app.use(cors({
   origin: "https://power-loom-production-monitoring-ap.vercel.app", // Frontend URL
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json()); 
 app.use(express.urlencoded({ extended: true }));
 
 // Connect to Database
