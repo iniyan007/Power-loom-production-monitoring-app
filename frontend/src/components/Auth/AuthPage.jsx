@@ -22,23 +22,28 @@ const AuthPage = ({ onLogin }) => {
     const endpoint = isLogin ? '/auth/login' : '/auth/register';
     const payload = isLogin
       ? { email: formData.email, password: formData.password, role: formData.role }
-      : formData;
+      : { 
+          name: formData.name,
+          email: formData.email, 
+          password: formData.password, 
+          role: formData.role 
+        };
 
-    const response = await axios.post(`${API_URL}${endpoint}`, payload);
+    console.log("Sending payload:", payload); // DEBUG
+
+    const response = await axios.post(`${API_URL}${endpoint}`, payload, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
 
     if (isLogin) {
-      // ✅ LOGIN FLOW
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       onLogin(response.data.user);
     } else {
-      // ✅ SIGNUP FLOW
       alert("Signup successful! Please login to continue.");
-
-      // Switch to login page
       setIsLogin(true);
-
-      // Clear password field
       setFormData({
         email: formData.email,
         password: '',
@@ -47,6 +52,7 @@ const AuthPage = ({ onLogin }) => {
       });
     }
   } catch (err) {
+    console.error("Full error:", err); // DEBUG
     setError(err.response?.data?.message || 'An error occurred');
   } finally {
     setLoading(false);

@@ -8,17 +8,17 @@ const loomRoutes = require("./routes/loomRoutes");
 const shiftRoutes = require("./routes/shiftRoutes");
 const sensorRoutes = require("./routes/sensorRoutes");
 
-
 dotenv.config();
 
 const app = express();
 
-// Middleware
+// Middleware - ORDER IS CRITICAL
 app.use(cors({
-  origin: "https://power-loom-production-monitoring-ap.vercel.app", // Frontend URL
+  origin: "https://power-loom-production-monitoring-ap.vercel.app",
   credentials: true
 }));
-app.use(express.json()); 
+
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Connect to Database

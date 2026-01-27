@@ -6,9 +6,22 @@ const User = require("../models/User");
 const router = express.Router();
 
 // Register
+// Register
 router.post("/register", async (req, res) => {
   try {
+    // DEBUG: Log the entire request body
+    console.log("Request body:", req.body);
+    console.log("Content-Type:", req.headers['content-type']);
+    
     const { name, email, password, role } = req.body;
+
+    // Check if required fields exist
+    if (!name || !email || !password) {
+      return res.status(400).json({ 
+        message: "Missing required fields",
+        received: { name, email, password: password ? "exists" : "missing", role }
+      });
+    }
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -46,6 +59,7 @@ router.post("/register", async (req, res) => {
       }
     });
   } catch (error) {
+    console.error("Registration error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
