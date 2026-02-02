@@ -23,6 +23,7 @@ router.get("/", auth, adminOnly, async (req, res) => {
     
     const loomsWithData = await Promise.all(
       looms.map(async (loom) => {
+        // Get latest sensor data for production and energy
         const latestSensor = await SensorData.findOne({ loomId: loom._id })
           .sort({ timestamp: -1 });
         
@@ -60,6 +61,15 @@ router.get("/", auth, adminOnly, async (req, res) => {
           shiftType = activeShift.shiftType;
         }
 
+        // Format production and energy with proper fallback
+        let length = 0;
+        let power = 0;
+
+        if (latestSensor) {
+          length = parseFloat((latestSensor.production || 0).toFixed(2));
+          power = parseFloat((latestSensor.energy || 0).toFixed(2));
+        }
+
         return {
           id: loom._id,
           loomId: loom.loomId,
@@ -68,8 +78,8 @@ router.get("/", auth, adminOnly, async (req, res) => {
           weaverName,
           weaverId,
           shiftType,
-          length: latestSensor ? latestSensor.production : '-',
-          power: latestSensor ? latestSensor.energy : '-',
+          length, // Production in meters
+          power,  // Energy in kWh
           startTime,
           endTime,
           runningSince: loom.runningSince
@@ -78,6 +88,41 @@ router.get("/", auth, adminOnly, async (req, res) => {
     );
 
     res.json(loomsWithData);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// ✅ Get single loom with production and energy data
+router.get("/:id", auth, async (req, res) => {
+  try {
+    const loom = await Loom.findById(req.params.id);
+    
+    if (!loom) {
+      return res.status(404).json({ message: "Loom not found" });
+    }
+
+    // Get latest sensor data
+    const latestSensor = await SensorData.findOne({ loomId: loom._id })
+      .sort({ timestamp: -1 });
+
+    let length = 0;
+    let power = 0;
+
+    if (latestSensor) {
+      length = parseFloat((latestSensor.production || 0).toFixed(2));
+      power = parseFloat((latestSensor.energy || 0).toFixed(2));
+    }
+
+    res.json({
+      id: loom._id,
+      loomId: loom.loomId,
+      status: loom.status,
+      isRunning: loom.status === "running",
+      length,
+      power,
+      runningSince: loom.runningSince
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -102,14 +147,44 @@ router.post("/", auth, adminOnly, async (req, res) => {
       status: loom.status,
       isRunning: false,
       weaverName: '',
-      length: '-',
+      length: 0,
       startTime: '-',
       endTime: '-',
-      power: '-',
+      power: 0,
       runningSince: null
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// ✅ Reset loom production and energy data (Admin)
+router.post("/:id/reset", auth, adminOnly, async (req, res) => {
+  try {
+    const loom = await Loom.findById(req.params.id);
+    
+    if (!loom) {
+      return res.status(404).json({ message: "Loom not found" });
+    }
+
+    // Delete all sensor data for this loom
+    const deleteResult = await SensorData.deleteMany({ loomId: loom._id });
+
+    console.log(`Reset loom ${loom.loomId}: Deleted ${deleteResult.deletedCount} sensor records`);
+
+    res.json({ 
+      success: true,
+      message: "Production and energy data reset successfully",
+      loomId: loom.loomId,
+      deletedRecords: deleteResult.deletedCount
+    });
+  } catch (error) {
+    console.error('Error resetting loom data:', error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error resetting loom data", 
+      error: error.message 
+    });
   }
 });
 
@@ -155,8 +230,9 @@ router.delete("/:id", auth, adminOnly, async (req, res) => {
       return res.status(404).json({ message: "Loom not found" });
     }
 
-    // Also delete all shifts for this loom
+    // Also delete all shifts and sensor data for this loom
     await Shift.deleteMany({ loomId: loom._id });
+    await SensorData.deleteMany({ loomId: loom._id });
 
     res.json({ message: "Loom deleted successfully" });
   } catch (error) {
