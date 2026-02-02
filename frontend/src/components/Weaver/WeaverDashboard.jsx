@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Play, Pause, User, Clock, Calendar } from "lucide-react";
+import { Play, Pause, User, Clock, Calendar, TrendingUp, Zap } from "lucide-react";
 
 const WeaverDashboard = ({ onLogout }) => {
   const [assignedMachines, setAssignedMachines] = useState([]);
   const [upcomingShifts, setUpcomingShifts] = useState([]);
+  const [machineStats, setMachineStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState('');
+
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return { Authorization: token };
+  };
 
   const fetchAssignedShifts = async () => {
     try {
@@ -20,19 +26,24 @@ const WeaverDashboard = ({ onLogout }) => {
       const data = await res.json();
 
       if (Array.isArray(data)) {
-        setAssignedMachines(
-          data.map((shift) => ({
-            id: shift.loomId._id,
-            shiftId: shift._id,
-            loomId: shift.loomId.loomId,
-            shiftType: shift.shiftType,
-            status: shift.loomId.status,
-            runningSince: shift.loomId.runningSince,
-            shiftStartTime: shift.startTime,
-            shiftEndTime: shift.endTime,
-            scheduledDate: shift.scheduledDate
-          }))
-        );
+        const machines = data.map((shift) => ({
+          id: shift.loomId._id,
+          shiftId: shift._id,
+          loomId: shift.loomId.loomId,
+          shiftType: shift.shiftType,
+          status: shift.loomId.status,
+          runningSince: shift.loomId.runningSince,
+          shiftStartTime: shift.startTime,
+          shiftEndTime: shift.endTime,
+          scheduledDate: shift.scheduledDate
+        }));
+        
+        setAssignedMachines(machines);
+        
+        // Fetch stats for each machine
+        machines.forEach(machine => {
+          fetchMachineStats(machine.id);
+        });
       } else {
         setAssignedMachines([]);
       }
@@ -43,6 +54,32 @@ const WeaverDashboard = ({ onLogout }) => {
       setAssignedMachines([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMachineStats = async (loomId) => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      // Fetch current loom data
+      const loomResponse = await fetch(
+        `https://power-loom-production-monitoring-app.onrender.com/api/looms/${loomId}`,
+        { headers: { Authorization: token } }
+      );
+      
+      if (loomResponse.ok) {
+        const loomData = await loomResponse.json();
+        
+        setMachineStats(prev => ({
+          ...prev,
+          [loomId]: {
+            production: loomData.length || 0,
+            energy: loomData.power || 0
+          }
+        }));
+      }
+    } catch (err) {
+      console.error(`Failed to fetch stats for loom ${loomId}:`, err);
     }
   };
 
@@ -229,7 +266,7 @@ const WeaverDashboard = ({ onLogout }) => {
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
-              Weaver 
+              Weaver Dashboard
             </h1>
             <p className="text-sm text-gray-600">
               Today's shifts • Auto-refresh: 5s
@@ -272,6 +309,7 @@ const WeaverDashboard = ({ onLogout }) => {
               {assignedMachines.map((machine) => {
                 const shiftActive = isShiftActive(machine);
                 const canStart = canStartLoom(machine);
+                const stats = machineStats[machine.id] || { production: 0, energy: 0 };
 
                 return (
                   <div
@@ -304,6 +342,28 @@ const WeaverDashboard = ({ onLogout }) => {
                       <span className="text-gray-600">
                         {formatShiftTime(machine.shiftStartTime)} - {formatShiftTime(machine.shiftEndTime)}
                       </span>
+                    </div>
+
+                    {/* Production and Energy Stats */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl">
+                        <div className="flex items-center gap-2 mb-1">
+                          <TrendingUp className="text-blue-600" size={18} />
+                          <p className="text-xs text-gray-600">Production</p>
+                        </div>
+                        <p className="text-2xl font-bold text-blue-900">
+                          {stats.production.toFixed(2)} m
+                        </p>
+                      </div>
+                      <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-xl">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Zap className="text-yellow-600" size={18} />
+                          <p className="text-xs text-gray-600">Energy</p>
+                        </div>
+                        <p className="text-2xl font-bold text-yellow-900">
+                          {stats.energy.toFixed(2)} kWh
+                        </p>
+                      </div>
                     </div>
 
                     {!shiftActive && (
@@ -392,7 +452,7 @@ const WeaverDashboard = ({ onLogout }) => {
                       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3">
                         <div className="flex items-center justify-between">
                           <h3 className="font-bold text-lg">{dateLabel}</h3>
-                          <span className="text-black bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                          <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full">
                             {shifts.length} {shifts.length === 1 ? 'Shift' : 'Shifts'}
                           </span>
                         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Ruler, Clock, Power, User, X, UserX, BarChart3, Calendar, Edit } from "lucide-react";
+import { Plus, Ruler, Clock, Power, User, X, UserX, BarChart3, Calendar, Edit, RotateCcw } from "lucide-react";
 import WeaverModal from "./WeaverModal";
 import MachineDetailModal from "./MachineDetailModal";
 
@@ -7,7 +7,7 @@ import MachineDetailModal from "./MachineDetailModal";
 const API_URL = "https://power-loom-production-monitoring-app.onrender.com/api";
 
 // Machine Card Component with Schedule Management
-const MachineCard = ({ machine, onAssignWeaver, onUnassignWeaver, onDelete, onViewDetails, onRefresh }) => {
+const MachineCard = ({ machine, onAssignWeaver, onUnassignWeaver, onDelete, onViewDetails, onRefresh, onResetData }) => {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduledShifts, setScheduledShifts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -52,6 +52,12 @@ const MachineCard = ({ machine, onAssignWeaver, onUnassignWeaver, onDelete, onVi
     fetchScheduledShifts();
   }, [machine.id]);
 
+  const handleResetData = () => {
+    if (window.confirm(`Are you sure you want to reset production and energy data for ${machine.loomId}? This action cannot be undone.`)) {
+      onResetData(machine.id);
+    }
+  };
+
   return (
     <>
       <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all p-6 border border-gray-200">
@@ -69,12 +75,12 @@ const MachineCard = ({ machine, onAssignWeaver, onUnassignWeaver, onDelete, onVi
                     Active Today
                   </span>
                 </div>
-                <div className="flex gap-2 mb-2">
+                <div className="flex gap-2 mb-2 flex-wrap">
                   <button
                     onClick={() => onAssignWeaver(machine.id)}
                     className="text-xs px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full hover:bg-indigo-200 transition-colors"
                   >
-                    Assign New
+                    Schedule New
                   </button>
                   <button
                     onClick={handleViewSchedule}
@@ -184,13 +190,22 @@ const MachineCard = ({ machine, onAssignWeaver, onUnassignWeaver, onDelete, onVi
           </div>
         </div>
 
-        <button
-          onClick={() => onViewDetails(machine)}
-          className="w-full mt-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg font-semibold hover:from-indigo-600 hover:to-purple-600 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-        >
-          <BarChart3 size={20} />
-          View Detailed Analytics
-        </button>
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => onViewDetails(machine)}
+            className="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg font-semibold hover:from-indigo-600 hover:to-purple-600 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+          >
+            <BarChart3 size={20} />
+            Analytics
+          </button>
+          <button
+            onClick={handleResetData}
+            className="px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+            title="Reset Production & Energy Data"
+          >
+            <RotateCcw size={20} />
+          </button>
+        </div>
 
         <div className="mt-4 pt-4 border-t text-center">
           <span
@@ -636,6 +651,27 @@ const AdminDashboard = ({ onLogout }) => {
     }
   };
 
+  const resetLoomData = async (loomId) => {
+    try {
+      const response = await fetch(`${API_URL}/looms/${loomId}/reset`, {
+        method: "POST",
+        headers: getAuthHeader(),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reset loom data');
+      }
+
+      await fetchMachines();
+      alert("Production and energy data reset successfully!");
+      setError("");
+    } catch (err) {
+      console.error("Failed to reset loom data:", err);
+      setError("Failed to reset loom data");
+      alert("Failed to reset loom data. Please try again.");
+    }
+  };
+
   const viewDetails = (machine) => {
     if (!machine) {
       console.error('Machine data is missing');
@@ -725,6 +761,7 @@ const AdminDashboard = ({ onLogout }) => {
                 onDelete={deleteMachine}
                 onViewDetails={viewDetails}
                 onRefresh={fetchMachines}
+                onResetData={resetLoomData}
               />
             ))}
           </div>
