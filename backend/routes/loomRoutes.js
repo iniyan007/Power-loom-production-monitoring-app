@@ -93,6 +93,20 @@ router.get("/", auth, adminOnly, async (req, res) => {
   }
 });
 
+router.get("/weavers", auth, adminOnly, async (req, res) => {
+  try {
+    const User = require("../models/User");
+    const weavers = await User.find({ role: "weaver" }).select("name email");
+    
+    res.json(weavers.map(w => ({
+      id: w._id,
+      name: w.name,
+      email: w.email
+    })));
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
 // ✅ Get single loom with production and energy data
 router.get("/:id", auth, async (req, res) => {
   try {
@@ -241,20 +255,7 @@ router.delete("/:id", auth, adminOnly, async (req, res) => {
 });
 
 // Get weavers list (Admin)
-router.get("/weavers", auth, adminOnly, async (req, res) => {
-  try {
-    const User = require("../models/User");
-    const weavers = await User.find({ role: "weaver" }).select("name email");
-    
-    res.json(weavers.map(w => ({
-      id: w._id,
-      name: w.name,
-      email: w.email
-    })));
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+
 
 // ✅ Start loom - with date and time validation
 router.post("/:id/start", auth, async (req, res) => {

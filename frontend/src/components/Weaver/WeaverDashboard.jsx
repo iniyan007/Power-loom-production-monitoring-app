@@ -452,7 +452,7 @@ const WeaverDashboard = ({ onLogout }) => {
                       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3">
                         <div className="flex items-center justify-between">
                           <h3 className="font-bold text-lg">{dateLabel}</h3>
-                          <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-black">
+                          <span className="text-black bg-white bg-opacity-20 px-3 py-1 rounded-full ">
                             {shifts.length} {shifts.length === 1 ? 'Shift' : 'Shifts'}
                           </span>
                         </div>
