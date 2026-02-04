@@ -13,9 +13,28 @@ dotenv.config();
 const app = express();
 
 // Middleware - ORDER IS CRITICAL
+const allowedOrigins = [
+  "http://localhost:5173",           // Vite dev server
+  "http://localhost:3000",           // Alternative port
+  "http://127.0.0.1:5173",          // Alternative localhost
+  "https://power-loom-production-monitoring-ap.vercel.app",
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: "https://power-loom-production-monitoring-ap.vercel.app",
-  credentials: true
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('Blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());

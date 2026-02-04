@@ -1,7 +1,8 @@
 import axios from "axios";
+import { API_URL } from "../config/apiConfig";
 
 export const api = axios.create({
-  baseURL: "https://power-loom-production-monitoring-app.onrender.com/api"
+  baseURL: API_URL
 });
 
 api.interceptors.request.use((req) => {

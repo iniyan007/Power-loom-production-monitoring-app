@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, TrendingUp, Zap, Clock, User, Calendar } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { API_URL } from "../../config/apiConfig";
 
 const MachineDetailModal = ({ isOpen, onClose, machine, authToken }) => {
   const [activeTab, setActiveTab] = useState('live');
@@ -24,7 +25,7 @@ const MachineDetailModal = ({ isOpen, onClose, machine, authToken }) => {
     
     try {
       const response = await fetch(
-        `https://power-loom-production-monitoring-app.onrender.com/api/sensor/live/${machine.id}`,
+        `${API_URL}/sensor/live/${machine.id}`,
         { headers: { Authorization: authToken } }
       );
       const data = await response.json();
@@ -41,7 +42,7 @@ const MachineDetailModal = ({ isOpen, onClose, machine, authToken }) => {
     
     try {
       const response = await fetch(
-        `https://power-loom-production-monitoring-app.onrender.com/api/sensor/history/${machine.id}`,
+        `${API_URL}/sensor/history/${machine.id}`,
         { headers: { Authorization: authToken } }
       );
       const data = await response.json();

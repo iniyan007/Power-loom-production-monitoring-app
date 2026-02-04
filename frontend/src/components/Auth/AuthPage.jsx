@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_URL } from '../../config/apiConfig';
 
-const API_URL = 'https://power-loom-production-monitoring-app.onrender.com/api';
+
 
 const AuthPage = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);

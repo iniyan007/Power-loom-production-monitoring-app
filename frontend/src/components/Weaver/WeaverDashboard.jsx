@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Play, Pause, User, Clock, Calendar, TrendingUp, Zap } from "lucide-react";
+import { API_URL } from "../../config/apiConfig";
 
 const WeaverDashboard = ({ onLogout }) => {
   const [assignedMachines, setAssignedMachines] = useState([]);
@@ -19,7 +20,7 @@ const WeaverDashboard = ({ onLogout }) => {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        "https://power-loom-production-monitoring-app.onrender.com/api/shifts/my-active-shift",
+        `${API_URL}/shifts/my-active-shift`,
         { headers: { Authorization: token } }
       );
 
@@ -63,7 +64,7 @@ const WeaverDashboard = ({ onLogout }) => {
       
       // Fetch current loom data
       const loomResponse = await fetch(
-        `https://power-loom-production-monitoring-app.onrender.com/api/looms/${loomId}`,
+        `${API_URL}/looms/${loomId}`,
         { headers: { Authorization: token } }
       );
       
@@ -88,7 +89,7 @@ const WeaverDashboard = ({ onLogout }) => {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        "https://power-loom-production-monitoring-app.onrender.com/api/shifts/my-all-upcoming-shifts",
+        `${API_URL}/shifts/my-all-upcoming-shifts`,
         { headers: { Authorization: token } }
       );
 
@@ -152,7 +153,7 @@ const WeaverDashboard = ({ onLogout }) => {
           ? `/api/looms/${machine.id}/stop`
           : `/api/looms/${machine.id}/start`;
 
-      const response = await fetch(`https://power-loom-production-monitoring-app.onrender.com${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: { Authorization: token },
       });

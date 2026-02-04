@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Plus, Ruler, Clock, Power, User, X, UserX, BarChart3, Calendar, Edit, RotateCcw } from "lucide-react";
 import WeaverModal from "./WeaverModal";
 import MachineDetailModal from "./MachineDetailModal";
+import { API_URL } from "../../config/apiConfig";
 
 
-const API_URL = "https://power-loom-production-monitoring-app.onrender.com/api";
 
 // Machine Card Component with Schedule Management
 const MachineCard = ({ machine, onAssignWeaver, onUnassignWeaver, onDelete, onViewDetails, onRefresh, onResetData }) => {
