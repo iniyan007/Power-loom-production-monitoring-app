@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Play, Pause, User, Clock, Calendar, TrendingUp, Zap } from "lucide-react";
+import {
+  Play,
+  Pause,
+  User,
+  Clock,
+  Calendar,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
 import { API_URL } from "../../config/apiConfig";
 
 const WeaverDashboard = ({ onLogout }) => {
@@ -8,7 +16,7 @@ const WeaverDashboard = ({ onLogout }) => {
   const [machineStats, setMachineStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const getAuthHeader = () => {
     const token = localStorage.getItem("token");
@@ -19,10 +27,9 @@ const WeaverDashboard = ({ onLogout }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `${API_URL}/shifts/my-active-shift`,
-        { headers: { Authorization: token } }
-      );
+      const res = await fetch(`${API_URL}/shifts/my-active-shift`, {
+        headers: { Authorization: token },
+      });
 
       const data = await res.json();
 
@@ -36,19 +43,19 @@ const WeaverDashboard = ({ onLogout }) => {
           runningSince: shift.loomId.runningSince,
           shiftStartTime: shift.startTime,
           shiftEndTime: shift.endTime,
-          scheduledDate: shift.scheduledDate
+          scheduledDate: shift.scheduledDate,
         }));
-        
+
         setAssignedMachines(machines);
-        
+
         // Fetch stats for each machine
-        machines.forEach(machine => {
+        machines.forEach((machine) => {
           fetchMachineStats(machine.id);
         });
       } else {
         setAssignedMachines([]);
       }
-      setError('');
+      setError("");
     } catch (err) {
       console.error("Failed to load assigned looms", err);
       setError("Failed to load assigned looms");
@@ -61,22 +68,21 @@ const WeaverDashboard = ({ onLogout }) => {
   const fetchMachineStats = async (loomId) => {
     try {
       const token = localStorage.getItem("token");
-      
+
       // Fetch current loom data
-      const loomResponse = await fetch(
-        `${API_URL}/looms/${loomId}`,
-        { headers: { Authorization: token } }
-      );
-      
+      const loomResponse = await fetch(`${API_URL}/looms/${loomId}`, {
+        headers: { Authorization: token },
+      });
+
       if (loomResponse.ok) {
         const loomData = await loomResponse.json();
-        
-        setMachineStats(prev => ({
+
+        setMachineStats((prev) => ({
           ...prev,
           [loomId]: {
             production: loomData.length || 0,
-            energy: loomData.power || 0
-          }
+            energy: loomData.power || 0,
+          },
         }));
       }
     } catch (err) {
@@ -88,16 +94,15 @@ const WeaverDashboard = ({ onLogout }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `${API_URL}/shifts/my-all-upcoming-shifts`,
-        { headers: { Authorization: token } }
-      );
+      const res = await fetch(`${API_URL}/shifts/my-all-upcoming-shifts`, {
+        headers: { Authorization: token },
+      });
 
       const data = await res.json();
-      
+
       // Group shifts by date for better organization
       const groupedShifts = data.reduce((acc, shift) => {
-        const date = new Date(shift.scheduledDate).toLocaleDateString('en-IN');
+        const date = new Date(shift.scheduledDate).toLocaleDateString("en-IN");
         if (!acc[date]) {
           acc[date] = [];
         }
@@ -138,11 +143,13 @@ const WeaverDashboard = ({ onLogout }) => {
 
       // Check if shift has started
       if (machine.status === "stopped" && currentTime < shiftStart) {
-        const startTime = shiftStart.toLocaleTimeString('en-IN', {
-          hour: '2-digit',
-          minute: '2-digit'
+        const startTime = shiftStart.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
         });
-        alert(`Your ${machine.shiftType} shift starts at ${startTime}. Please wait until then.`);
+        alert(
+          `Your ${machine.shiftType} shift starts at ${startTime}. Please wait until then.`,
+        );
         return;
       }
 
@@ -150,8 +157,8 @@ const WeaverDashboard = ({ onLogout }) => {
 
       const endpoint =
         machine.status === "running"
-          ? `/api/looms/${machine.id}/stop`
-          : `/api/looms/${machine.id}/start`;
+          ? `/looms/${machine.id}/stop`
+          : `/looms/${machine.id}/start`;
 
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
@@ -165,7 +172,7 @@ const WeaverDashboard = ({ onLogout }) => {
       }
 
       await fetchAssignedShifts();
-      setError('');
+      setError("");
     } catch (err) {
       console.error("Failed to toggle loom:", err);
       setError("Failed to toggle loom");
@@ -188,29 +195,29 @@ const WeaverDashboard = ({ onLogout }) => {
   const formatShiftTime = (time) => {
     if (!time) return "";
     const date = new Date(time);
-    return date.toLocaleTimeString('en-IN', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
+    return date.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
     });
   };
 
   const formatDate = (date) => {
     if (!date) return "";
-    return new Date(date).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     });
   };
 
   const formatDateWithDay = (date) => {
     if (!date) return "";
-    return new Date(date).toLocaleDateString('en-IN', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
+    return new Date(date).toLocaleDateString("en-IN", {
+      weekday: "long",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     });
   };
 
@@ -241,7 +248,7 @@ const WeaverDashboard = ({ onLogout }) => {
     const currentTime = new Date();
     const shiftStart = new Date(machine.shiftStartTime);
     const shiftEnd = new Date(machine.shiftEndTime);
-    
+
     return currentTime >= shiftStart && currentTime <= shiftEnd;
   };
 
@@ -249,7 +256,7 @@ const WeaverDashboard = ({ onLogout }) => {
     const currentTime = new Date();
     const shiftStart = new Date(machine.shiftStartTime);
     const thirtyMinsBefore = new Date(shiftStart.getTime() - 30 * 60 * 1000);
-    
+
     return currentTime >= thirtyMinsBefore;
   };
 
@@ -291,8 +298,10 @@ const WeaverDashboard = ({ onLogout }) => {
 
         {/* Today's Active Shifts */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Today's Assigned Shifts</h2>
-          
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
+            Today's Assigned Shifts
+          </h2>
+
           {assignedMachines.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
               <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -302,7 +311,8 @@ const WeaverDashboard = ({ onLogout }) => {
                 No Shifts Today
               </h3>
               <p className="text-gray-600">
-                You don't have any shifts assigned for today. Check your upcoming shifts below.
+                You don't have any shifts assigned for today. Check your
+                upcoming shifts below.
               </p>
             </div>
           ) : (
@@ -310,7 +320,10 @@ const WeaverDashboard = ({ onLogout }) => {
               {assignedMachines.map((machine) => {
                 const shiftActive = isShiftActive(machine);
                 const canStart = canStartLoom(machine);
-                const stats = machineStats[machine.id] || { production: 0, energy: 0 };
+                const stats = machineStats[machine.id] || {
+                  production: 0,
+                  energy: 0,
+                };
 
                 return (
                   <div
@@ -331,7 +344,9 @@ const WeaverDashboard = ({ onLogout }) => {
                             ? "bg-green-500 animate-pulse"
                             : "bg-red-500"
                         }`}
-                        title={machine.status === "running" ? "Running" : "Stopped"}
+                        title={
+                          machine.status === "running" ? "Running" : "Stopped"
+                        }
                       />
                     </div>
 
@@ -341,7 +356,8 @@ const WeaverDashboard = ({ onLogout }) => {
                         {machine.shiftType}
                       </span>
                       <span className="text-gray-600">
-                        {formatShiftTime(machine.shiftStartTime)} - {formatShiftTime(machine.shiftEndTime)}
+                        {formatShiftTime(machine.shiftStartTime)} -{" "}
+                        {formatShiftTime(machine.shiftEndTime)}
                       </span>
                     </div>
 
@@ -369,16 +385,17 @@ const WeaverDashboard = ({ onLogout }) => {
 
                     {!shiftActive && (
                       <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded-lg text-sm">
-                        {canStart 
+                        {canStart
                           ? `⏰ Your shift starts at ${formatShiftTime(machine.shiftStartTime)}`
-                          : `⏳ Shift not yet available. Available 30 minutes before start time.`
-                        }
+                          : `⏳ Shift not yet available. Available 30 minutes before start time.`}
                       </div>
                     )}
 
                     {shiftActive && (
                       <div className="text-center mb-6">
-                        <p className="text-sm text-gray-500 mb-2">Running Time</p>
+                        <p className="text-sm text-gray-500 mb-2">
+                          Running Time
+                        </p>
                         <p className="text-4xl font-mono font-bold">
                           {formatTime(machine.runningSince)}
                         </p>
@@ -392,8 +409,8 @@ const WeaverDashboard = ({ onLogout }) => {
                         !canStart
                           ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                           : machine.status === "running"
-                          ? "bg-red-500 text-white hover:bg-red-600"
-                          : "bg-green-500 text-white hover:bg-green-600"
+                            ? "bg-red-500 text-white hover:bg-red-600"
+                            : "bg-green-500 text-white hover:bg-green-600"
                       }`}
                     >
                       {machine.status === "running" ? (
@@ -417,7 +434,9 @@ const WeaverDashboard = ({ onLogout }) => {
                             : "bg-gray-100 text-gray-700"
                         }`}
                       >
-                        {machine.status === "running" ? "● RUNNING" : "● STOPPED"}
+                        {machine.status === "running"
+                          ? "● RUNNING"
+                          : "● STOPPED"}
                       </span>
                     </div>
                   </div>
@@ -430,14 +449,16 @@ const WeaverDashboard = ({ onLogout }) => {
         {/* Upcoming Shifts - All Future Shifts */}
         {Object.keys(upcomingShifts).length > 0 && (
           <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Upcoming Shifts</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              Upcoming Shifts
+            </h2>
             <div className="space-y-4">
               {Object.entries(upcomingShifts)
                 .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
                 .map(([date, shifts]) => {
                   const firstShiftDate = shifts[0].scheduledDate;
                   const daysUntil = getDaysUntil(firstShiftDate);
-                  
+
                   let dateLabel = formatDateWithDay(firstShiftDate);
                   if (isToday(firstShiftDate)) {
                     dateLabel = `Today - ${formatDate(firstShiftDate)}`;
@@ -448,13 +469,17 @@ const WeaverDashboard = ({ onLogout }) => {
                   }
 
                   return (
-                    <div key={date} className="bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div
+                      key={date}
+                      className="bg-white rounded-2xl shadow-xl overflow-hidden"
+                    >
                       {/* Date Header */}
                       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3">
                         <div className="flex items-center justify-between">
                           <h3 className="font-bold text-lg">{dateLabel}</h3>
                           <span className="text-black bg-white bg-opacity-20 px-3 py-1 rounded-full ">
-                            {shifts.length} {shifts.length === 1 ? 'Shift' : 'Shifts'}
+                            {shifts.length}{" "}
+                            {shifts.length === 1 ? "Shift" : "Shifts"}
                           </span>
                         </div>
                       </div>
@@ -462,30 +487,44 @@ const WeaverDashboard = ({ onLogout }) => {
                       {/* Shifts for this date */}
                       <div className="p-6 space-y-3">
                         {shifts
-                          .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+                          .sort(
+                            (a, b) =>
+                              new Date(a.startTime) - new Date(b.startTime),
+                          )
                           .map((shift) => (
                             <div
                               key={shift._id}
                               className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                             >
                               <div className="flex items-center gap-4">
-                                <div className={`p-3 rounded-lg ${
-                                  shift.shiftType === 'Morning' ? 'bg-yellow-100' :
-                                  shift.shiftType === 'Evening' ? 'bg-orange-100' :
-                                  'bg-indigo-100'
-                                }`}>
-                                  <Clock size={24} className={
-                                    shift.shiftType === 'Morning' ? 'text-yellow-600' :
-                                    shift.shiftType === 'Evening' ? 'text-orange-600' :
-                                    'text-indigo-600'
-                                  } />
+                                <div
+                                  className={`p-3 rounded-lg ${
+                                    shift.shiftType === "Morning"
+                                      ? "bg-yellow-100"
+                                      : shift.shiftType === "Evening"
+                                        ? "bg-orange-100"
+                                        : "bg-indigo-100"
+                                  }`}
+                                >
+                                  <Clock
+                                    size={24}
+                                    className={
+                                      shift.shiftType === "Morning"
+                                        ? "text-yellow-600"
+                                        : shift.shiftType === "Evening"
+                                          ? "text-orange-600"
+                                          : "text-indigo-600"
+                                    }
+                                  />
                                 </div>
                                 <div>
                                   <p className="font-semibold text-gray-800">
-                                    {shift.loomId.loomId} - {shift.shiftType} Shift
+                                    {shift.loomId.loomId} - {shift.shiftType}{" "}
+                                    Shift
                                   </p>
                                   <p className="text-sm text-gray-600">
-                                    {formatShiftTime(shift.startTime)} - {formatShiftTime(shift.endTime)}
+                                    {formatShiftTime(shift.startTime)} -{" "}
+                                    {formatShiftTime(shift.endTime)}
                                   </p>
                                 </div>
                               </div>
@@ -503,19 +542,21 @@ const WeaverDashboard = ({ onLogout }) => {
         )}
 
         {/* No Upcoming Shifts */}
-        {Object.keys(upcomingShifts).length === 0 && assignedMachines.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
-            <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Calendar size={48} className="text-gray-400" />
+        {Object.keys(upcomingShifts).length === 0 &&
+          assignedMachines.length === 0 && (
+            <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
+              <div className="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Calendar size={48} className="text-gray-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                No Shifts Scheduled
+              </h3>
+              <p className="text-gray-600">
+                You don't have any shifts assigned yet. Please contact your
+                administrator.
+              </p>
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">
-              No Shifts Scheduled
-            </h3>
-            <p className="text-gray-600">
-              You don't have any shifts assigned yet. Please contact your administrator.
-            </p>
-          </div>
-        )}
+          )}
       </div>
     </div>
   );
