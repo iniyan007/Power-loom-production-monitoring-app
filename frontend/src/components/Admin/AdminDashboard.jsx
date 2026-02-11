@@ -711,10 +711,15 @@ const AdminDashboard = ({ onLogout }) => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">
-                  Admin Dashboard
-                </h1>
-                <p className="text-sm text-gray-600">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-gray-800">
+                    Admin Dashboard
+                  </h1>
+                  <span className="inline-block px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-full">
+                    v1.0.0
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mt-1">
                   Manage weaving machines • Auto-refresh: 5s
                 </p>
               </div>
