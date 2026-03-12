@@ -1,7 +1,5 @@
 # Power-loom-production-monitoring-app
 
-# Power Loom Production Monitoring App
-
 A full-stack web application for real-time monitoring and management of power loom machines in a textile production environment.
 
 ---
